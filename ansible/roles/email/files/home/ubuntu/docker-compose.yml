@@ -1,0 +1,44 @@
+version: '2'
+services:
+  mail:
+    image: tvial/docker-mailserver:latest
+    hostname: ${HOSTNAME}
+    domainname: ${DOMAINNAME}
+    container_name: ${CONTAINER_NAME}
+    ports:
+    - "25:25"
+    - "143:143"
+    - "587:587"
+    - "993:993"
+    volumes:
+    - /opt/persistant_storage/mail/mail/:/var/mail
+    - /opt/persistant_storage/mail/mail-state/:/var/mail-state
+    - /opt/persistant_storage/mail/mail-logs/:/var/log/mail
+    - /opt/persistant_storage/mail/config/:/tmp/docker-mailserver/
+    - /opt/persistant_storage/certbot/conf:/etc/letsencrypt
+    env_file:
+    - .env
+    - env-mailserver
+    cap_add:
+    - NET_ADMIN
+    - SYS_PTRACE
+    restart: always
+  nginx:
+    image: nginx:1.15-alpine
+    container_name: nginx
+    ports:
+    - "80:80"
+    - "443:443"
+    volumes:
+    - ./nginx.conf:/etc/nginx/conf.d/nginx.conf
+    - /opt/persistant_storage/certbot/conf:/etc/letsencrypt
+    - /opt/persistant_storage/certbot/www:/var/www/certbot
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+  certbot:
+    image: certbot/certbot
+    volumes:
+    - /opt/persistant_storage/certbot/conf:/etc/letsencrypt
+    - /opt/persistant_storage/certbot/www:/var/www/certbot
+    - /usr/bin/docker:/usr/bin/docker
+    - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --post-hook \"docker exec mail postfix reload && docker exec nginx nginx -s reload\"; sleep 12h; done;'"

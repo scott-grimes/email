@@ -1,0 +1,14 @@
+[Unit]
+Description=Auto Attach Volume
+After=cloud-init.service
+Requires=cloud-init.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/attach_persistant_storage
+ExecStop=
+StandardOutput=journal
+RemainAfterExit=yes
+
+[Install]
+WantedBy=config-finished.target

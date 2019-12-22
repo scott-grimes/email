@@ -1,0 +1,7 @@
+[Unit]
+Description=Config Finished Target
+Requires=cloud-init.target
+After=cloud-init.target
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+# domain MUST be set or ansible will fail
+domain:
+
+
+# the only other modification requred to this role is to make sure
+# your desired nginx.conf file in templates/home/ubuntu/
+# is as you'd like it to be

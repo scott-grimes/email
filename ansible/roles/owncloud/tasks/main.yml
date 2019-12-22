@@ -1,0 +1,46 @@
+- fail: msg="Bailing out. this play requires 'domain'"
+  when: domain is undefined
+
+- name: Create email directory
+  file:
+    path: /opt/persistant_storage/email
+    state: directory
+    mode: 0755
+
+# add files
+- name: Add docker-compose file
+  copy:
+    src: home/ubuntu/docker-compose.yaml
+    dest: /home/ubuntu/docker-compose.yaml
+    mode: 0755
+
+# template files
+
+
+# if no certs exist, do dance
+
+
+# if env changed, register restart email
+
+# if docker-compose changed, docker-compose up
+
+# if nginx changed, nginx reload
+
+
+
+# prepare directory structure
+# sudo mkdir -p /opt/persistant_storage/mail
+# sudo chown ubuntu:ubuntu /opt/persistant_storage/mail
+#
+# mkdir -p /opt/persistant_storage/certbot
+# mkdir -p /opt/persistant_storage/nginx
+#
+# sudo mkdir -p /opt/persistant_storage/certbot/conf
+# sudk mkdir -p /opt/persistant_storage/nginx/conf.d
+# sudo mkdir -p /opt/persistant_storage/certbot/www
+
+
+
+# if files dont exist
+# /etc/letsencrypt/options-ssl-nginx.conf;
+# /etc/letsencrypt/ssl-dhparams.pem;

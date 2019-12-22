@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# This is a one-shot service that attaches an ebs volume
+
+# Attach EBS Volume for Persistant Storage
+EC2_INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+EC2_AZ=$(curl -s http://169.t/meta-data/placement/availability-zone)
+EC2_REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.region')
+JOBS_VOL_ID=$(aws ec2 describe-volumes --region "${EC2_REGION}" | jq -r '[.Volumes[] | select(.Tags) | select(.Tags[].Key | contains ("Name")) | select(.Tags[].Value | contains ("PersistantStorage"))][0].VolumeId')
+VOLUME_STATUS=''
+PRIVATE_IP="$(curl http://169.254.169.254/latest/meta-data/local-ipv4)"
+
+# check if it's already attached!
+CURR_ATTACHMENT=$(aws ec2 describe-volumes --volume-ids $JOBS_VOL_ID --region $EC2_REGION --output text --query 'Volumes[0].Attachments[0].InstanceId')
+if [[ "$CURR_ATTACHMENT" != "$EC2_INSTANCE_ID" ]]; then
+  aws ec2 attach-volume --volume-id $JOBS_VOL_ID --region $EC2_REGION --instance-id $EC2_INSTANCE_ID --device /dev/sdf
+  until [[ "$VOLUME_STATUS" == "available" ]]; do
+      VOLUME_STATUS=$(aws ec2 describe-volumes --volume-ids $JOBS_VOL_ID --region $EC2_REGION --output text --query 'Volumes[0].State')
+      echo "curr vol status: $VOLUME_STATUS"
+      sleep 5
+  done
+else
+  echo "Volume Already Attached to ${CURR_ATTACHMENT}"
+fi;
+
+until [[ "$VOLUME_STATUS" == "in-use" ]]; do
+    VOLUME_STATUS=$(aws ec2 describe-volumes --volume-ids $JOBS_VOL_ID --region $EC2_REGION --output text --query 'Volumes[0].State')
+    echo "curr vol status: $VOLUME_STATUS"
+    sleep 5
+done
+
+# makes file system if none exists
+FILE_S=$(sudo file -s /dev/xvdf)
+if [[ "${FILE_S}" == "/dev/xvdf: data" ]]; then
+  sudo mkfs -t ext4 /dev/xvdf
+fi
+
+# prepare mount point
+sudo mkdir -p /opt/persistant_storage
+sudo chown ubuntu:ubuntu /opt/persistant_storage
+
+# mounts if not mounted
+if ! mountpoint -q /opt/persistant_storage/; then
+  sudo mount /dev/xvdf /opt/persistant_storage/ -t ext4
+  echo "mounting"
+fi;

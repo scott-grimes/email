@@ -1,0 +1,24 @@
+- name: Install common packages
+  block:
+    - include_tasks: packages.yml
+
+- name: Set default shell to /bin/bash
+  file:
+    src: /bin/bash
+    dest: /bin/sh
+    state: link
+
+
+# TODO auto mount volume
+
+# TODO if docker not installed docker-ce include other thing
+
+- name: Check if swap file exists
+  stat:
+    path: /swapfile
+  register: swap_file_check
+
+- name: Create Swap
+  block:
+  - include_tasks: swap.yml
+  when: swap_file_check.stat.exists != True

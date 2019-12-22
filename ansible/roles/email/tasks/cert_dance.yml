@@ -1,0 +1,32 @@
+# for letsencrypt to function nginx must serve the folder correctly,
+# but nginx will fail if no certs are availible. to fix this chicken/egg
+# problem some temporary certs will be generated only on first boot,
+# lets encrypt will fetch the actual certs, then nginx will be rebooted
+
+echo "### Deleting dummy certificate for $domains ..."
+docker-compose run --rm --entrypoint "\
+  rm -Rf /etc/letsencrypt/live/$domains && \
+  rm -Rf /etc/letsencrypt/archive/$domains && \
+  rm -Rf /etc/letsencrypt/renewal/$domains.conf" certbot
+echo
+
+docker-compose up --force-recreate -d nginx
+
+docker-compose run --rm --entrypoint "\
+openssl req -x509 -nodes -newkey rsa:1024 -days 1 \
+  -keyout '/opt/persistant_storage/certbot/conf/live/{{ domain }}/privkey.pem' \
+  -out '/opt/persistant_storage/certbot/conf/live/{{ domain }}/fullchain.pem' \
+  -subj '/CN=localhost'" certbot
+
+docker-compose run --rm --entrypoint "\
+  certbot certonly \
+  --webroot \
+  -w /var/www/certbot \
+  --register-unsafely-without-email \
+  -d {{ domain }} \
+  --rsa-key-size 4096 \
+  --agree-tos \
+  --force-renewal
+echo
+
+docker-compose exec nginx nginx -s reload

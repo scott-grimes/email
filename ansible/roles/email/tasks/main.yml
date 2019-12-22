@@ -1,0 +1,111 @@
+- fail:
+    msg: "Bailing out. this play requires 'domain'"
+  when: not domain
+
+- name: Create persistant directory for mail server
+  file:
+    path: /opt/persistant_storage/mail
+    state: directory
+    mode: '0755'
+
+- name: Create mail sub directory
+  file:
+    path: /opt/persistant_storage/mail/mail
+    state: directory
+    mode:  '2775'
+    owner: '5000'
+    group: '5000'
+
+# prepare directory structure
+# sudo mkdir -p /opt/persistant_storage/mail
+# sudo chown ubuntu:ubuntu /opt/persistant_storage/mail
+#
+# mkdir -p /opt/persistant_storage/certbot
+# mkdir -p /opt/persistant_storage/nginx
+
+# sudo mkdir -p /opt/persistant_storage/certbot/conf
+# sudk mkdir -p /opt/persistant_storage/nginx/conf.d
+# sudo mkdir -p /opt/persistant_storage/certbot/www
+
+- name: Add docker-compose file
+  copy:
+    src: home/ubuntu/docker-compose.yml
+    dest: /home/ubuntu/docker-compose.yml
+    mode: '0755'
+  register: docker_compose_changed
+
+- name: Add env-mailserver
+  copy:
+    src: home/ubuntu/env-mailserver
+    dest: /home/ubuntu/env-mailserver
+    mode: '0755'
+
+- name: Add setup.sh
+  copy:
+    src: home/ubuntu/setup.sh
+    dest: /home/ubuntu/setup.sh
+    mode: '0755'
+
+# template files
+- name: Template .env
+  template:
+    src: home/ubuntu/.env
+    dest: /home/ubuntu/.env
+    mode: '0755'
+  register: env_changed
+
+- name: Template nginx.conf
+  template:
+    src: home/ubuntu/nginx.conf
+    dest: /home/ubuntu/nginx.conf
+    mode: '0755'
+  register: nginx_changed
+
+# Fetch recommended TLS parameters
+- name: check if options-ssl-nginx.conf already exist
+  stat:
+    path: /opt/persistant_storage/certbot/conf/options-ssl-nginx.conf
+  register: options_ssl_nginx
+
+- name: check if ssl-dhparams.pem already exist
+  stat:
+    path: /opt/persistant_storage/certbot/conf/ssl-dhparams.pem
+  register: ssl_dhparams
+
+- name: fetch options-ssl-nginx.conf
+  get_url:
+    url: https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf
+    dest: /opt/persistant_storage/certbot/conf/options-ssl-nginx.conf
+  when: options_ssl_nginx.stat.exists != True
+
+- name: fetch ssl-dhparams.pem
+  get_url:
+    url: https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem
+    dest: /opt/persistant_storage/certbot/conf/ssl-dhparams.pem
+  when: ssl_dhparams.stat.exists != True
+
+- name: check for existing cert directory
+  stat:
+    path: /opt/persistant_storage/certbot/conf/live/{{ domain }}
+  register: cert_directory
+
+- name: check for certs in directory:
+  command: asdfasdf
+  register: certs
+
+
+- name: first boot certificates
+  block:
+  - include_tasks: cert_dance.yml
+  when: cert_directory.stat.exists != True or certs.asdfasdfsf
+
+- name: reboot nginx
+  command: asdfasdf
+  when: nginx_changed
+
+- name: update envs
+  command: asdfasdf
+  when: env_changed
+
+- name: docker-compose
+  command: docker-compose up -d

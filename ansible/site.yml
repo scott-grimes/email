@@ -1,0 +1,13 @@
+- hosts: localhost
+  connection: local
+  tasks:
+  - add_host:
+      name: "{{ working_host }}"
+      groups: email
+    changed_when: false
+
+- hosts: email
+  become: true
+  roles:
+    #- common
+    - role: email

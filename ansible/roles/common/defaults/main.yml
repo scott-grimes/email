@@ -1,0 +1,7 @@
+swap_file_size: 4G
+swappiness: 60
+apt_packages:
+  - curl
+  - jq
+  - vim
+  - awscli
